@@ -1,52 +1,319 @@
-# Nodejs-Express-Mongoose-Starter
+# RxDigital Backend
 
-This template is designed to kickstart your new projects with ease. It encapsulates fundamental concepts and provides a customizable foundation tailored to your project requirements.
+A production-ready Node.js REST API for prescription digitization. This backend translates handwritten prescriptions into digital formats, featuring secure user authentication, validation, and error handling.
 
-- Quick setup for building RESTful APIs with Node.js, Express, and Mongoose.
-- A production-ready Node.js application, installed and configured effortlessly.
-- Built-in features include JWT-based authentication and request validation.
+## Features
 
-**Stay tuned for updates by starring the repository!**
+- ✅ **JWT-based Authentication**: Secure token-based authentication with expiration
+- ✅ **Password Security**: Bcrypt hashing with configurable encryption rounds
+- ✅ **Input Validation**: Express-validator for robust request validation
+- ✅ **Error Handling**: Comprehensive error handling with proper HTTP status codes
+- ✅ **Database**: MongoDB with Mongoose ODM for data persistence
+- ✅ **MVC Architecture**: Clean separation of concerns (Models, Controllers, Routes, Validators)
+- ✅ **Middleware Support**: Auth middleware for protected routes
+- ✅ **Dynamic Port Detection**: Automatically finds available port if primary is in use
+- ✅ **Environment Configuration**: Support for multiple environments via .env
 
 ## Table of Contents
 
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Configuration](#configuration)
-- [Features](#features)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Architecture](#architecture)
+- [Database Schema](#database-schema)
 - [API Endpoints](#api-endpoints)
-- [Contributing](#contributing)
-- [License](#license)
+- [Error Handling](#error-handling)
+- [Running Tests](#running-tests)
+- [Project Structure](#project-structure)
 
-<br>
+## Prerequisites
 
-## [Getting Started](#getting-started)
+- [Node.js](https://nodejs.org/) (v14+)
+- [MongoDB](https://www.mongodb.com/) (local or Atlas)
+- npm or yarn
 
-### [Prerequisites](#prerequisites)
-
-- Make sure to setup the NodeJS Developer environment.
-- Following are the pre-requisites:
-  - [Node.js](https://nodejs.org/)
-  - [MongoDB](https://www.mongodb.com/)
-
-### [Installation](#installation)
+## Installation
 
 1. Clone the repository
-
    ```bash
-   git clone https://github.com/saadjavaid67/nodejs-starter.git
+   git clone <repository-url>
+   cd rxdigital-backend
    ```
 
-2. Clone the repository
-
+2. Install dependencies
    ```bash
-   cd nodejs-starter
+   npm install
    ```
 
-3. Install dependencies
+3. Create `.env` file in the root directory
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Configure your environment variables (see Configuration section)
+
+5. Start the server
+   ```bash
+   npm start
+   ```
+
+## Configuration
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+PORT=3000
+NODE_ENV=development
+MONGODB_URI=mongodb://localhost:27017/rxdigital
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRY=7d
+ENCRYPTION_ROUNDS=10
+```
+
+**Environment Variables:**
+- `PORT`: Server port (default: 3000)
+- `NODE_ENV`: Environment type (development/production)
+- `MONGODB_URI`: MongoDB connection string
+- `JWT_SECRET`: Secret key for JWT token generation
+- `JWT_EXPIRY`: Token expiration time (e.g., "7d", "24h")
+- `ENCRYPTION_ROUNDS`: Bcrypt salt rounds for password hashing
+
+## Architecture
+
+### Design Pattern: MVC (Model-View-Controller)
+
+```
+src/
+├── models/           # Data models (User schema)
+├── controllers/      # Business logic handlers
+├── api/
+│   ├── routes/       # API endpoints
+│   ├── validators/   # Request validation rules
+│   └── middlewares/  # Auth & request processing
+└── app.js           # Express app initialization
+
+config/              # Configuration files
+providers/           # Helper services (Auth, Database)
+```
+
+### Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Runtime | Node.js |
+| Framework | Express.js |
+| Database | MongoDB + Mongoose |
+| Authentication | JWT (JSON Web Tokens) |
+| Password Hashing | Bcrypt |
+| Validation | express-validator |
+| Dev Tools | Nodemon |
+
+## Database Schema
+
+### User Model
+
+```javascript
+{
+  _id: ObjectId,
+  name: String (required, trimmed),
+  email: String (required, unique, lowercase),
+  password: String (required, hashed, excluded from JSON output),
+  createdAt: DateTime (auto-generated),
+  updatedAt: DateTime (auto-generated)
+}
+```
+
+**Schema Features:**
+- Password is automatically excluded from API responses
+- Timestamps track creation and modification
+- Email is unique at database level
+- Password is hashed using bcrypt before storage
+
+## API Endpoints
+
+### Base URL
+```
+http://localhost:3000/api
+```
+
+### User Routes
+
+#### 1. Register User
+```http
+POST /user/register
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "SecurePassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "msg": "User created successfully",
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "_id": "507f1f77bcf86cd799439011",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "createdAt": "2026-05-22T10:00:00Z",
+    "updatedAt": "2026-05-22T10:00:00Z"
+  }
+}
+```
+
+**Validation Rules:**
+- `name`: Required, non-empty
+- `email`: Required, valid email format, unique
+- `password`: Required, minimum 8 characters
+
+#### 2. Login User
+```http
+POST /user/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "SecurePassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "msg": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "_id": "507f1f77bcf86cd799439011",
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+}
+```
+
+**Validation Rules:**
+- `email`: Required, valid email format
+- `password`: Required, minimum 8 characters
+
+#### 3. Get All Users (Protected)
+```http
+GET /user
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+```json
+{
+  "message": "Success",
+  "users": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "createdAt": "2026-05-22T10:00:00Z",
+      "updatedAt": "2026-05-22T10:00:00Z"
+    }
+  ]
+}
+```
+
+**Authorization:** Requires valid JWT token in Authorization header
+
+## Error Handling
+
+### HTTP Status Codes
+
+| Code | Scenario |
+|------|----------|
+| 200 | Success |
+| 400 | Bad request (validation failed) |
+| 401 | Unauthorized (invalid/missing token) |
+| 422 | Unprocessable entity (validation errors) |
+| 500 | Internal server error |
+
+### Error Response Format
+
+```json
+{
+  "msg": "Descriptive error message",
+  "errors": [
+    {
+      "param": "email",
+      "msg": "Invalid email"
+    }
+  ]
+}
+```
+
+### Common Error Scenarios
+
+1. **Duplicate Email**: Returns 422 with validation error
+2. **Invalid Credentials**: Returns 500 with generic message (prevents user enumeration)
+3. **Expired Token**: Returns 401 with "Unauthorized" message
+4. **Missing Auth Header**: Returns 401 with "Unauthorized" message
+
+## Running Tests
+
+Run the test suite:
+```bash
+npm test
+```
+
+Tests cover:
+- User registration with valid/invalid data
+- User login with correct/incorrect credentials
+- Protected route access with/without tokens
+- Input validation
+- Database operations
+
+## Project Structure
+
+```
+rxdigital-backend/
+├── index.js                 # Application entry point
+├── package.json
+├── .env                     # Environment variables (add to .gitignore)
+├── .env.example             # Example environment variables
+├── config/
+│   ├── app.js              # App configuration
+│   └── database.js         # Database connection
+├── providers/
+│   ├── AuthProvider.js     # JWT token generation
+│   └── DatabaseProvider.js # DB initialization
+├── src/
+│   ├── app.js              # Express app setup
+│   ├── api/
+│   │   ├── middlewares/
+│   │   │   ├── authMiddleware.js      # JWT validation
+│   │   │   └── coreMiddleware.js      # CORS, body-parser
+│   │   ├── routes/
+│   │   │   ├── index.js                # Route aggregation
+│   │   │   └── userRoutes.js           # User endpoints
+│   │   └── validators/
+│   │       └── userValidator.js        # Input validation rules
+│   ├── controllers/
+│   │   └── userController.js           # Business logic
+│   └── models/
+│       └── User.js                     # User schema & methods
+└── tests/
+    ├── user.register.test.js
+    ├── user.login.test.js
+    └── user.protected.test.js
+```
+
+## Contributing
+
+1. Create a feature branch: `git checkout -b feature/prescription-upload`
+2. Commit changes: `git commit -m "Add prescription upload"`
+3. Push to branch: `git push origin feature/prescription-upload`
+4. Open a Pull Request
+
+## License
+
+ISC
 
    ```bash
    npm install
